@@ -1,5 +1,11 @@
-import { useState } from "react";
-import { LayoutDashboard, Boxes, ClipboardList, Layers, PlusCircle } from "lucide-react";
+import { useState, useEffect} from "react";
+import {
+  LayoutDashboard,
+  Boxes,
+  ClipboardList,
+  Layers,
+  PlusCircle,
+} from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import StockForm from "./pages/StockForm";
 import AssetsPage from "./pages/AssetsPage";
@@ -20,11 +26,21 @@ const PAGE_TITLE_BY_PAGE = {
 function App() {
   const [page, setPage] = useState("dashboard");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
+
+  useEffect(() => {
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    setIsLoggedIn(Boolean(token));
+  }, []);
+
   if (!isLoggedIn) {
-    return <Login setIsLoggedIn={setIsLoggedIn} />;
+    return (
+    <Login
+      setIsLoggedIn={setIsLoggedIn}
+      onLoginSuccess={() => setPage("dashboard")} 
+    />
+    );
   }
- 
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -34,36 +50,72 @@ function App() {
         </div>
 
         <nav className="nav">
-          <button className={`nav-item ${page==="dashboard"?"active":""}`} onClick={()=>setPage("dashboard")}>
-              <LayoutDashboard size={18}/> Dashboard
+          <button
+            className={`nav-item ${page === "dashboard" ? "active" : ""}`}
+            onClick={() => setPage("dashboard")}
+            type="button"
+          >
+            <LayoutDashboard size={18} /> Dashboard
           </button>
 
-          <button className={`nav-item ${page==="available"?"active":""}`} onClick={()=>setPage("available")}>
-              <Boxes size={18}/> Available Assets
+          <button
+            className={`nav-item ${page === "available" ? "active" : ""}`}
+            onClick={() => setPage("available")}
+            type="button"
+          >
+            <Boxes size={18} /> Available Assets
           </button>
 
-          <button className={`nav-item ${page==="assigned"?"active":""}`} onClick={()=>setPage("assigned")}>
-              <ClipboardList size={18}/> Assigned Assets
+          <button
+            className={`nav-item ${page === "assigned" ? "active" : ""}`}
+            onClick={() => setPage("assigned")}
+            type="button"
+          >
+            <ClipboardList size={18} /> Assigned Assets
           </button>
 
-          <button className={`nav-item ${page==="total"?"active":""}`} onClick={()=>setPage("total")}>
-              <Layers size={18}/> Total Assets
+          <button
+            className={`nav-item ${page === "total" ? "active" : ""}`}
+            onClick={() => setPage("total")}
+            type="button"
+          >
+            <Layers size={18} /> Total Assets
           </button>
 
-          <button className={`nav-item ${page==="stock"?"active":""}`} onClick={()=>setPage("stock")}>
-              <PlusCircle size={18}/> Update Stock
+          <button
+            className={`nav-item ${page === "stock" ? "active" : ""}`}
+            onClick={() => setPage("stock")}
+            type="button"
+          >
+            <PlusCircle size={18} /> Update Stock
           </button>
 
-          <button className={`nav-item ${page==="assign"?"active":""}`} onClick={()=>setPage("assign")}>
-              <PlusCircle size={18}/> Assign Asset
+          <button
+            className={`nav-item ${page === "assign" ? "active" : ""}`}
+            onClick={() => setPage("assign")}
+            type="button"
+          >
+            <PlusCircle size={18} /> Assign Asset
           </button>
         </nav>
       </aside>
 
       <main className="content">
         <header className="topbar">
-          <div className="topbar-title">{PAGE_TITLE_BY_PAGE[page] ?? "Inventra"}</div>
-          <button className="logout-btn" type="button" onClick={() => setIsLoggedIn(false)}>
+          <div className="topbar-title">
+            {PAGE_TITLE_BY_PAGE[page] ?? "Inventra"}
+          </div>
+          <button
+            className="logout-btn"
+            type="button"
+            onClick={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              sessionStorage.removeItem("token");
+              sessionStorage.removeItem("user");
+              setIsLoggedIn(false);
+            }}
+          >
             Logout
           </button>
         </header>

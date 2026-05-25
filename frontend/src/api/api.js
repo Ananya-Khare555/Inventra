@@ -46,3 +46,31 @@ export async function getAllAssets() {
   const res = await fetch(`${BASE_URL}/api/all-assets`);
   return res.json();
 }
+
+export async function signupApi(data) {
+  const res = await fetch(`${BASE_URL}/api/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  const result = await res.json();
+  if (!res.ok) {
+    throw new Error(result.message || "Signup failed");
+  }
+  return result;
+}
+
+export async function loginApi(data) {
+  const res = await fetch(`${BASE_URL}/api/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  const result = await res.json();
+  if (!res.ok) {
+    throw new Error(result.message || "Login failed");
+  }
+  return result;
+}

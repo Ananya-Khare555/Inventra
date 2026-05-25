@@ -1,12 +1,133 @@
 const express = require("express");
 const cors = require("cors");
 const pool = require("./db");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || "inventra_secret_key";
 
 app.use(express.json());
 app.use(cors());
+
+function createToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+    },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+app.post("/api/signup", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const existingUser = await pool.query(
+      "SELECT * FROM users WHERE username = $1",
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({ message: "User already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users (username, password, role, name)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, username, role, name`,
+      [email, hashedPassword, "user", name]
+    );
+
+    const user = result.rows[0];
+    const token = createToken(user);
+
+    return res.status(201).json({
+      message: "Signup successful",
+      token,
+      user,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+});
+
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const result = await pool.query(
+      "SELECT * FROM users WHERE username = $1",
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const user = result.rows[0];
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = createToken(user);
+
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+});
+
+function authenticate(req, res, next) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : null;
+
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
+
 app.post("/api/assets", async (req, res) => {
   const {
     asset_type,
